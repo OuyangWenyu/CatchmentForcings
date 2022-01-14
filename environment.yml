@@ -1,0 +1,7 @@
+name: hydroRS
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - jupyterlab
