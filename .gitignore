@@ -142,8 +142,8 @@ ERA5_globalpaper_sites3221
 /test/test_data/01013500_2000_01-02_nomask.nc
 /test/cache/
 /test/test_data/
-/hydrodataset/app/download/cache/
-/hydrodataset/app/daymet4basins/cache/
-/hydrodataset/nldas4basins/earth_data
-/hydrodataset/nldas4basins/subset_NLDAS_FORA0125_*.txt
-/hydrodataset/modis4basins/*download.txt
+/catchmentforcings/app/download/cache/
+/catchmentforcings/app/daymet4basins/cache/
+/catchmentforcings/nldas4basins/earth_data
+/catchmentforcings/nldas4basins/subset_NLDAS_FORA0125_*.txt
+/catchmentforcings/modis4basins/*download.txt
