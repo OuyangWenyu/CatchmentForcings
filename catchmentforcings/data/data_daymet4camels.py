@@ -8,9 +8,9 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 
-from hydrodataset.data.data_base import DataSourceBase
-from hydrodataset.data.data_camels import Camels
-from hydrodataset.utils import hydro_utils
+from catchmentforcings.data.data_base import DataSourceBase
+from hydrodataset.camels import Camels
+from catchmentforcings.utils import hydro_utils
 
 
 class Daymet4Camels(DataSourceBase):

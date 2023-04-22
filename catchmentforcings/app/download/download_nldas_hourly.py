@@ -15,8 +15,8 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.utils.hydro_utils import hydro_logger
-from hydrodataset.nldas4basins.download_nldas import download_nldas_with_url_lst
+from catchmentforcings.utils.hydro_utils import hydro_logger
+from catchmentforcings.nldas4basins.download_nldas import download_nldas_with_url_lst
 
 
 def main(args):

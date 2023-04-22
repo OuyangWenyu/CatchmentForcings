@@ -10,7 +10,7 @@ from pyproj import transform, CRS, Proj
 from shapely.geometry import Polygon, Point
 import xarray as xr
 
-from hydrodataset.utils.hydro_utils import serialize_geopandas
+from catchmentforcings.utils.hydro_utils import serialize_geopandas
 
 
 def split_shp_to_shps_in_time_zones(

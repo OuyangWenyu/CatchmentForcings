@@ -4,7 +4,7 @@ import numpy as np
 import scipy.stats
 from scipy.stats import wilcoxon
 
-from hydrodataset.utils.hydro_utils import hydro_logger
+from catchmentforcings.utils.hydro_utils import hydro_logger
 
 
 def KGE(xs, xo):

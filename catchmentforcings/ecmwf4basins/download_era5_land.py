@@ -30,7 +30,7 @@ import datetime
 import pygeoutils as geoutils
 from shapely.geometry import MultiPolygon, Polygon
 
-from hydrodataset.utils import hydro_utils
+from catchmentforcings.utils import hydro_utils
 
 DEF_CRS = "epsg:4326"
 

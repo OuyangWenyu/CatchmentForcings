@@ -9,10 +9,10 @@ from typing import Tuple, Dict, Union
 import pytz
 from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 
-from hydrodataset.data.data_base import DataSourceBase
-from hydrodataset.data.stat import cal_fdc
-from hydrodataset.utils import hydro_utils
-from hydrodataset.utils.hydro_utils import (
+from catchmentforcings.data.data_base import DataSourceBase
+from catchmentforcings.data.stat import cal_fdc
+from catchmentforcings.utils import hydro_utils
+from catchmentforcings.utils.hydro_utils import (
     is_any_elem_in_a_lst,
     unzip_nested_zip,
     hydro_logger,

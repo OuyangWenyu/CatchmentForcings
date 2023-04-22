@@ -16,8 +16,8 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.data.data_camels import Camels
-from hydrodataset.utils.hydro_utils import progress_wrapped, hydro_logger
+from hydrodataset.camels import Camels
+from catchmentforcings.utils.hydro_utils import progress_wrapped, hydro_logger
 
 
 @progress_wrapped(estimated_time=1000)

@@ -13,8 +13,8 @@ import io
 import xarray as xr
 import numpy as np
 import pandas as pd
-from hydrodataset.pet.pet4daymet import priestley_taylor, pm_fao56
-from hydrodataset.utils.hydro_utils import t_range_days
+from catchmentforcings.pet.pet4daymet import priestley_taylor, pm_fao56
+from catchmentforcings.utils.hydro_utils import t_range_days
 
 DEF_CRS = "epsg:4326"
 

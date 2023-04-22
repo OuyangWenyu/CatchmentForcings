@@ -17,8 +17,8 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.data.data_camels import Camels
-from hydrodataset.ecmwf4basins.basin_era5_process import (
+from hydrodataset.camels import Camels
+from catchmentforcings.ecmwf4basins.basin_era5_process import (
     move_camels_us_files_to_huc_dir,
     trans_era5_land_to_camels_format,
 )

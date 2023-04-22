@@ -18,7 +18,7 @@ from netrc import netrc
 import requests
 from tqdm import tqdm
 
-from hydrodataset.utils.hydro_utils import hydro_logger
+from catchmentforcings.utils.hydro_utils import hydro_logger
 
 
 # overriding requests.Session.rebuild_auth to mantain headers when redirected
