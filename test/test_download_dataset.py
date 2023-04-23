@@ -16,7 +16,7 @@ import pydaymet as daymet
 
 import definitions
 from catchmentforcings.climateproj4basins.download_cmip6 import NexGddpCmip6
-from catchmentforcings.data.data_camels import Camels
+from hydrodataset.camels import Camels
 from catchmentforcings.data.data_gages import read_usgs_daily_flow
 from catchmentforcings.daymet4basins.basin_daymet_process import (
     download_daymet_by_geom_bound,

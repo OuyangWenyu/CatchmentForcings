@@ -90,7 +90,7 @@ def gages():
 
 def test1_trans_to_csv_load_to_gis(save_dir):
     basin_id = "01013500"
-    read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_nomask.nc")
+    read_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_nomask.nc")
     daily = xr.open_dataset(read_path)
 
     arr_lat = daily["lat"].values.flatten()
@@ -120,7 +120,7 @@ def test2_which_basin_boundary_out_of_camels(camels, save_dir):
     gb_east = gb[2]
     gb_north = gb[3]
 
-    read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_nomask.nc")
+    read_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_nomask.nc")
     daily = xr.open_dataset(read_path)
 
     arr_lat = daily["lat"].values.flatten()
@@ -152,12 +152,12 @@ def test3_trans_to_rectangle(camels, save_dir):
     geometry = camels_shp_epsg4326[
         camels_shp_epsg4326["hru_id"] == int(basin_id)
     ].geometry.item()
-    save_path = os.path.join(save_dir, basin_id + "_camels.shp")
+    save_path = os.path.join(save_dir, f"{basin_id}_camels.shp")
     camels_shp_epsg4326[
         camels_shp_epsg4326["hru_id"] == int(basin_id)
     ].geometry.to_file(save_path)
 
-    read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_from_urls.nc")
+    read_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_from_urls.nc")
     ds = xr.open_dataset(read_path)
     ds_dims = ("y", "x")
     transform, width, height = geoutils.pygeoutils._get_transform(ds, ds_dims)
@@ -179,33 +179,40 @@ def test3_trans_to_rectangle(camels, save_dir):
     mask = xr.DataArray(_mask, coords, dims=ds_dims)
     mask_bound = xr.DataArray(_mask_bound, coords, dims=ds_dims)
 
-    ds_masked = ds.where(mask, drop=True)
-    ds_masked.attrs["transform"] = transform
-    ds_masked.attrs["bounds"] = _geometry.bounds
+    ds_masked = _extracted_from_test3_trans_to_rectangle_37(
+        ds, mask, transform, _geometry
+    )
+    ds_bound_masked = _extracted_from_test3_trans_to_rectangle_37(
+        ds, mask_bound, transform, _geometry
+    )
+    _extracted_from_test3_trans_to_rectangle_45(
+        ds_masked, save_dir, "geometry_load_to_qgis.csv"
+    )
+    _extracted_from_test3_trans_to_rectangle_45(
+        ds_bound_masked, save_dir, "bound_load_to_qgis.csv"
+    )
 
-    ds_bound_masked = ds.where(mask_bound, drop=True)
-    ds_bound_masked.attrs["transform"] = transform
-    ds_bound_masked.attrs["bounds"] = _geometry.bounds
 
-    arr_lat = ds_masked["lat"].values.flatten()
-    arr_lon = ds_masked["lon"].values.flatten()
-    arr_data = ds_masked["prcp"].values[0, :, :].flatten()
+# TODO Rename this here and in `test3_trans_to_rectangle`
+def _extracted_from_test3_trans_to_rectangle_37(ds, arg1, transform, _geometry):
+    result = ds.where(arg1, drop=True)
+    result.attrs["transform"] = transform
+    result.attrs["bounds"] = _geometry.bounds
+
+    return result
+
+
+# TODO Rename this here and in `test3_trans_to_rectangle`
+def _extracted_from_test3_trans_to_rectangle_45(arg0, save_dir, arg2):
+    arr_lat = arg0["lat"].values.flatten()
+    arr_lon = arg0["lon"].values.flatten()
+    arr_data = arg0["prcp"].values[0, :, :].flatten()
 
     arr_all = np.c_[arr_lat, arr_lon, arr_data]
     # remove the rows with nan value
     arr = arr_all[~np.isnan(arr_all).any(axis=1)]
     df = pd.DataFrame(data=arr, columns=["lat", "lon", "prcp"])
-    df.to_csv(os.path.join(save_dir, "geometry_load_to_qgis.csv"), index=False)
-
-    arr_bound_lat = ds_bound_masked["lat"].values.flatten()
-    arr_bound_lon = ds_bound_masked["lon"].values.flatten()
-    arr_bound_data = ds_bound_masked["prcp"].values[0, :, :].flatten()
-
-    arr_bound_all = np.c_[arr_bound_lat, arr_bound_lon, arr_bound_data]
-    # remove the rows with nan value
-    arr_bound = arr_bound_all[~np.isnan(arr_bound_all).any(axis=1)]
-    df_bound = pd.DataFrame(data=arr_bound, columns=["lat", "lon", "prcp"])
-    df_bound.to_csv(os.path.join(save_dir, "bound_load_to_qgis.csv"), index=False)
+    df.to_csv(os.path.join(save_dir, arg2), index=False)
     # after getting the csv file, please use "Layer -> Add Layer -> Add Delimited Text Layer" in QGIS to import it.
 
 
@@ -219,17 +226,17 @@ def test4_read_nc_write_boundary(camels, save_dir):
         camels_shp_epsg4326["hru_id"] == int(basin_id)
     ].geometry.item()
 
-    read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_from_urls.nc")
+    read_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_from_urls.nc")
     ds = xr.open_dataset(read_path)
     ds_masked = generate_boundary_dataset(ds, geometry)
 
-    save_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_bound.nc")
+    save_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_bound.nc")
     ds_masked.to_netcdf(save_path)
 
 
 def test_resample_nc(save_dir):
     basin_id = "01013500"
-    nc_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_bound.nc")
+    nc_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_bound.nc")
     ds = xr.open_dataset(nc_path)
     ds_high_res = resample_nc(ds, 0.5)
     ds_low_res = resample_nc(ds, 2)

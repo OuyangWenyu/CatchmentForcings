@@ -148,3 +148,4 @@ ERA5_globalpaper_sites3221
 /catchmentforcings/nldas4basins/subset_NLDAS_FORA0125_*.txt
 /catchmentforcings/modis4basins/*download.txt
 definitions_private.py
+catchmentforcings/app/gage_id.csv
