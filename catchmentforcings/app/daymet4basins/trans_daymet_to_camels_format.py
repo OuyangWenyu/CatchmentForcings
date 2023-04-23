@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2023-04-22 15:43:44
-LastEditTime: 2023-04-23 09:07:33
+LastEditTime: 2023-04-23 11:14:04
 LastEditors: Wenyu Ouyang
 Description: 
 FilePath: \CatchmentForcings\catchmentforcings\app\daymet4basins\trans_daymet_to_camels_format.py
@@ -64,10 +64,10 @@ def trans_daymet(args):
         trans_daymet_to_camels_format(
             daymet_dir, output_dir, chosen_gage_dict, region, year
         )
-        insert_daymet_value_in_leap_year(
-            output_dir,
-            t_range=[f"{str(year)}-01-01", f"{str(year + 1)}-01-01"],
-        )
+    insert_daymet_value_in_leap_year(
+        output_dir,
+        t_range=[f"{str(years[0])}-01-01", f"{str(years[-1]+1)}-01-01"],
+    )
     print("Trans finished")
 
 
