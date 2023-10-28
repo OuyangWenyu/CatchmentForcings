@@ -1,6 +1,5 @@
 import collections
 import os
-import geopandas as gpd
 import numpy as np
 import pandas as pd
 import requests
@@ -9,19 +8,16 @@ from typing import Tuple, Dict, Union
 import pytz
 from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 
-from hydrodataset.data.data_base import DataSourceBase
-from hydrodataset.data.stat import cal_fdc
-from hydrodataset.utils import hydro_utils
-from hydrodataset.utils.hydro_utils import (
-    is_any_elem_in_a_lst,
-    unzip_nested_zip,
+from hydrodataset import HydroDataset
+from hydroutils import (
+    hydro_time,
+    hydro_arithmetric,
+    hydro_file,
     hydro_logger,
-    download_one_zip,
-    download_small_file,
 )
 
 
-class Gages(DataSourceBase):
+class Gages(HydroDataset):
     def __init__(self, data_path, download=False):
         super().__init__(data_path)
         self.data_source_description = self.set_data_source_describe()
@@ -52,7 +48,6 @@ class Gages(DataSourceBase):
 
     def set_data_source_describe(self):
         gages_db = self.data_source_dir
-        # region shapefiles
         gage_region_dir = os.path.join(
             gages_db,
             "boundaries_shapefiles_by_aggeco",
@@ -330,7 +325,7 @@ class Gages(DataSourceBase):
             if key == "flowrec":
                 data_temp = data_temp.iloc[:, range(0, data_temp.shape[1] - 1)]
             var_lst_temp = list(data_temp.columns[1:])
-            do_exist, idx_lst = is_any_elem_in_a_lst(
+            do_exist, idx_lst = hydro_arithmetric.is_any_elem_in_a_lst(
                 attr_lst, var_lst_temp, return_index=True
             )
             if do_exist:
@@ -394,7 +389,7 @@ class Gages(DataSourceBase):
         assert all(x < y for x, y in zip(object_ids, object_ids[1:]))
         assert all(x < y for x, y in zip(t_range_list, t_range_list[1:]))
         print("reading formatted data:")
-        t_lst = hydro_utils.t_range_days(t_range_list)
+        t_lst = hydro_time.t_range_days(t_range_list)
         nt = t_lst.shape[0]
         x = np.empty([len(object_ids), nt, len(var_lst)])
         for k in range(len(object_ids)):
@@ -429,7 +424,7 @@ class Gages(DataSourceBase):
         np.array
             streamflow data, 1d-axis: gages, 2d-axis: day, 3d-axis: streamflow
         """
-        t_lst = hydro_utils.t_range_days(t_range_list)
+        t_lst = hydro_time.t_range_days(t_range_list)
         nt = t_lst.shape[0]
         y = np.empty([len(usgs_id_lst), nt, 1])
         for k in range(len(usgs_id_lst)):
@@ -596,7 +591,7 @@ class Gages(DataSourceBase):
         for i in range(len(unzip_dirs)):
             if not os.path.isdir(unzip_dirs[i]):
                 print("unzip directory:" + unzip_dirs[i])
-                unzip_nested_zip(download_zip_files[i], unzip_dirs[i])
+                hydro_file.unzip_nested_zip(download_zip_files[i], unzip_dirs[i])
             else:
                 print("unzip directory -- " + unzip_dirs[i] + " has existed")
 
@@ -621,7 +616,7 @@ def prepare_usgs_data(
     hydro_logger.info("NOT all data_source could be downloaded from website directly!")
     # download zip files
     [
-        download_one_zip(attr_url, data_source_description["GAGES_DIR"])
+        hydro_file.download_one_zip(attr_url, data_source_description["GAGES_DIR"])
         for attr_url in data_source_description["GAGES_DOWNLOAD_URL_LST"]
     ]
     # download streamflow data from USGS website
@@ -664,7 +659,7 @@ def prepare_usgs_data(
 
             # save in its HUC02 dir
             temp_file = os.path.join(dir_huc_02, str(usgs_id_lst[ind]) + ".txt")
-            download_small_file(url, temp_file)
+            hydro_file.download_small_file(url, temp_file)
             print("successfully download " + temp_file + " streamflow data！")
 
 
@@ -679,7 +674,7 @@ def get_dor_values(gages: Gages, usgs_id) -> np.array:
     # attr_lst = ["RUNAVE7100", "STOR_NID_2009"]
     attr_lst = ["RUNAVE7100", "STOR_NOR_2009"]
     data_attr = gages.read_constant_cols(usgs_id, attr_lst)
-    run_avg = data_attr[:, 0] * (10 ** (-3)) * (10 ** 6)  # m^3 per year
+    run_avg = data_attr[:, 0] * (10 ** (-3)) * (10**6)  # m^3 per year
     nor_storage = data_attr[:, 1] * 1000  # m^3
     dors = nor_storage / run_avg
     return dors
@@ -699,7 +694,9 @@ def get_diversion(gages: Gages, usgs_id) -> np.array:
     )
     data_attr_lower = np.vstack((data_attr0_lower, data_attr1_lower)).T
     diversions = [
-        is_any_elem_in_a_lst(diversion_strs_lower, data_attr_lower[i], include=True)
+        hydro_arithmetric.is_any_elem_in_a_lst(
+            diversion_strs_lower, data_attr_lower[i], include=True
+        )
         for i in range(len(usgs_id))
     ]
     return np.array(diversions)

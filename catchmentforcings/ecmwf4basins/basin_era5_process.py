@@ -7,7 +7,7 @@ import shutil
 import numpy as np
 import pandas as pd
 
-from hydrodataset.utils.hydro_utils import utc_to_local
+from catchmentforcings.utils.hydro_utils import utc_to_local
 
 
 def trans_era5_land_to_camels_format(
@@ -186,6 +186,7 @@ def trans_era5_land_to_camels_format(
     sum_data_temp[sum_dataset[1]] = sum_data_temp[sum_dataset[1]].apply(
         lambda dt_tmp: utc_to_local(dt_tmp, local_tz=time_zone)
     )
+    gage_dict[gage_id_key] = gage_dict[gage_id_key] + ["2181200"]
     for i_basin in range(len(gage_dict[gage_id_key])):
         avg_basin_data = avg_data_temp[
             avg_data_temp[avg_dataset[0]].values.astype(int)

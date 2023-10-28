@@ -1,24 +1,23 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-03-19 16:15:00
-LastEditTime: 2022-03-20 10:48:40
+LastEditTime: 2023-10-28 20:33:30
 LastEditors: Wenyu Ouyang
 Description: Trans ERA5-LAND data to the format of CAMELS
-FilePath: /HydroBench/hydrodataset/app/ecmwf4basins/trans_era5land_to_camels_format.py
+FilePath: \CatchmentForcings\catchmentforcings\app\ecmwf4basins\trans_era5land_to_camels_format.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
 import argparse
 import os
 import sys
-
 from tqdm import tqdm
-
 from pathlib import Path
+
+from hydrodataset import Camels
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.data.data_camels import Camels
-from hydrodataset.ecmwf4basins.basin_era5_process import (
+from catchmentforcings.ecmwf4basins.basin_era5_process import (
     move_camels_us_files_to_huc_dir,
     trans_era5_land_to_camels_format,
 )
@@ -75,21 +74,21 @@ if __name__ == "__main__":
         "--input_dir",
         dest="input_dir",
         help="The directory of downloaded ERA5-LAND data",
-        default="D:/data/ERA5_LAND",
+        default="C:\\Users\\wenyu\\Downloads\\drive-download-20230102T151921Z-001",
         type=str,
     )
     parser.add_argument(
         "--output_dir",
         dest="output_dir",
         help="The directory of transformed data",
-        default="D:/data/ERA5_LAND_CAMELS",
+        default="C:\\Users\\wenyu\\Downloads\\drive-download-20230102T151921Z-001",
         type=str,
     )
     parser.add_argument(
         "--name",
         dest="name",
         help="All files are named era5_land_xx_avg/sum_mean_xxx, where xx is the NAME and xxx is the year",
-        default="camels_cc",
+        default="zagunao",
         type=str,
     )
     parser.add_argument(
@@ -103,7 +102,7 @@ if __name__ == "__main__":
         "--year_range",
         dest="year_range",
         help="The start and end years (right open interval)",
-        default=[2014, 2022],
+        default=[1980, 2014],
         nargs="+",
     )
     parser.add_argument(

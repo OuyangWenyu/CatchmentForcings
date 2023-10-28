@@ -8,12 +8,11 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 
-from hydrodataset.data.data_base import DataSourceBase
-from hydrodataset.data.data_camels import Camels
-from hydrodataset.utils import hydro_utils
+from hydrodataset import Camels, HydroDataset
+from hydroutils import hydro_time
 
 
-class Daymet4Camels(DataSourceBase):
+class Daymet4Camels(HydroDataset):
     """
     A datasource class for geo attributes data, Daymet v4 forcing data, and streamflow data of basins in CAMELS.
 
@@ -176,9 +175,9 @@ class Daymet4Camels(DataSourceBase):
         assert len(t_range) == 2
         assert all(x < y for x, y in zip(usgs_id_lst, usgs_id_lst[1:]))
         if resample > 0:
-            t_years = hydro_utils.t_range_years(t_range)
+            t_years = hydro_time.t_range_years(t_range)
             # our range is a left open left close range, the default range in xarray slice is close interval, so -1 day
-            t_days = hydro_utils.t_days_lst2range(hydro_utils.t_range_days(t_range))
+            t_days = hydro_time.t_days_lst2range(hydro_time.t_range_days(t_range))
             if resample == 1:
                 data_folder = self.data_source_description["DAYMET4_DIR"]
                 resample_str = ""
@@ -208,7 +207,7 @@ class Daymet4Camels(DataSourceBase):
             else:
                 return ens_list
         else:
-            t_range_list = hydro_utils.t_range_days(t_range)
+            t_range_list = hydro_time.t_range_days(t_range)
             nt = t_range_list.shape[0]
             x = np.empty([len(usgs_id_lst), nt, len(var_lst)])
             for k in range(len(usgs_id_lst)):
