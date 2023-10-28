@@ -1,3 +1,12 @@
+"""
+Author: Wenyu Ouyang
+Date: 2022-10-18 20:19:58
+LastEditTime: 2023-04-22 08:19:10
+LastEditors: Wenyu Ouyang
+Description: Test for downloading dataset
+FilePath:/CatchmentForcings/test/test_download_dataset.py
+Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
+"""
 import os
 import pytest
 import geopandas as gpd
@@ -6,17 +15,17 @@ import xarray as xr
 import pydaymet as daymet
 
 import definitions
-from hydrodataset.climateproj4basins.download_cmip6 import NexGddpCmip6
-from hydrodataset.data.data_camels import Camels
-from hydrodataset.data.data_gages import read_usgs_daily_flow
-from hydrodataset.daymet4basins.basin_daymet_process import (
+from catchmentforcings.climateproj4basins.download_cmip6 import NexGddpCmip6
+from hydrodataset.camels import Camels
+from catchmentforcings.data.data_gages import read_usgs_daily_flow
+from catchmentforcings.daymet4basins.basin_daymet_process import (
     download_daymet_by_geom_bound,
     calculate_basin_grids_pet,
     calculate_basin_mean,
 )
-from hydrodataset.utils.hydro_utils import unserialize_geopandas
-from hydrodataset.ecmwf4basins.download_era5_land import download_era5
-from hydrodataset.nldas4basins.download_nldas import download_nldas_with_url_lst
+from catchmentforcings.utils.hydro_utils import unserialize_geopandas
+from catchmentforcings.ecmwf4basins.download_era5_land import download_era5
+from catchmentforcings.nldas4basins.download_nldas import download_nldas_with_url_lst
 
 
 @pytest.fixture()

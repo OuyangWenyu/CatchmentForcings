@@ -16,11 +16,11 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.data.data_camels import Camels
-from hydrodataset.smap4basins.basin_smap_process import (
+from hydrodataset.camels import Camels
+from catchmentforcings.smap4basins.basin_smap_process import (
     trans_nasa_usda_smap_to_camels_format,
 )
-from hydrodataset.utils.hydro_utils import unzip_nested_zip
+from catchmentforcings.utils.hydro_utils import unzip_nested_zip
 
 
 def main(args):

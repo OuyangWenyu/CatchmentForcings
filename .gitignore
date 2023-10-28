@@ -138,7 +138,7 @@ ERA5_globalpaper_sites3221
 # Pyre type checker
 .pyre/
 .idea
-/hydrodataset/app/download/dask-worker-space/
+/catchmentforcings/app/download/dask-worker-space/
 /test/test_data/01013500_2000_01-02_nomask.nc
 /test/cache/
 /test/test_data/
@@ -148,3 +148,5 @@ ERA5_globalpaper_sites3221
 /catchmentforcings/nldas4basins/subset_NLDAS_FORA0125_*.txt
 /catchmentforcings/modis4basins/*download.txt
 /ERA5_globalpaper_sites3221_reduce
+definitions_private.py
+catchmentforcings/app/gage_id.csv

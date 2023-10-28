@@ -106,7 +106,7 @@ class Daymet4Camels(HydroDataset):
 
         data_folder = self.data_source_description["DAYMET4_BASIN_MEAN_DIR"]
         data_file = os.path.join(
-            data_folder, "daymet", huc, "%s_lump_cida_forcing_leap_pet.txt" % usgs_id
+            data_folder, "daymet", huc, f"{usgs_id}_lump_cida_forcing_leap_pet.txt"
         )
         data_temp = pd.read_csv(data_file, sep=r"\s+", header=None, skiprows=1)
         forcing_lst = [
@@ -175,47 +175,44 @@ class Daymet4Camels(HydroDataset):
         assert len(t_range) == 2
         assert all(x < y for x, y in zip(usgs_id_lst, usgs_id_lst[1:]))
         if resample > 0:
-            t_years = hydro_time.t_range_years(t_range)
-            # our range is a left open left close range, the default range in xarray slice is close interval, so -1 day
-            t_days = hydro_time.t_days_lst2range(hydro_time.t_range_days(t_range))
-            if resample == 1:
-                data_folder = self.data_source_description["DAYMET4_DIR"]
-                resample_str = ""
-            else:
-                data_folder = self.data_source_description["DAYMET4_RESAMPLE_DIR"]
-                resample_str = str(resample)
-            ens_list = []
-            for num in range(len(usgs_id_lst)):
-                ens = usgs_id_lst[num]
-                name_lst = []
-                for name in glob.glob(
-                    os.path.join(data_folder, ens, "*" + resample_str + ".nc")
-                ):
-                    if int(name.split("/")[-1].split("_")[1]) in t_years:
-                        name_lst.append(name)
-                name_lst_sorted = np.sort(name_lst).tolist()
-                ens_list.append(
-                    xr.open_mfdataset(name_lst_sorted).sel(
-                        time=slice(t_days[0], t_days[1])
-                    )
-                )
+            return self.read_xr_forcing_data(t_range, resample, usgs_id_lst, concat)
+        t_range_list = hydro_time.t_range_days(t_range)
+        nt = t_range_list.shape[0]
+        x = np.empty([len(usgs_id_lst), nt, len(var_lst)])
+        for k in range(len(usgs_id_lst)):
+            data = self.read_basin_mean_daymet4(usgs_id_lst[k], var_lst, t_range_list)
+            x[k, :, :] = data
+        return x
 
-            if concat:
-                new_dim = pd.Index(usgs_id_lst)
-                ds = xr.concat(ens_list, dim=new_dim)
-                return ds
-            else:
-                return ens_list
+    def read_xr_forcing_data(self, t_range, resample, usgs_id_lst, concat):
+        t_years = hydro_time.t_range_years(t_range)
+        # our range is a left open left close range, the default range in xarray slice is close interval, so -1 day
+        t_days = hydro_time.t_days_lst2range(hydro_time.t_range_days(t_range))
+        if resample == 1:
+            data_folder = self.data_source_description["DAYMET4_DIR"]
+            resample_str = ""
         else:
-            t_range_list = hydro_time.t_range_days(t_range)
-            nt = t_range_list.shape[0]
-            x = np.empty([len(usgs_id_lst), nt, len(var_lst)])
-            for k in range(len(usgs_id_lst)):
-                data = self.read_basin_mean_daymet4(
-                    usgs_id_lst[k], var_lst, t_range_list
+            data_folder = self.data_source_description["DAYMET4_RESAMPLE_DIR"]
+            resample_str = str(resample)
+        ens_list = []
+        for item in usgs_id_lst:
+            ens = item
+            name_lst = [
+                name
+                for name in glob.glob(
+                    os.path.join(data_folder, ens, f"*{resample_str}.nc")
                 )
-                x[k, :, :] = data
-            return x
+                if int(name.split("/")[-1].split("_")[1]) in t_years
+            ]
+            name_lst_sorted = np.sort(name_lst).tolist()
+            ens_list.append(
+                xr.open_mfdataset(name_lst_sorted).sel(time=slice(t_days[0], t_days[1]))
+            )
+
+        if not concat:
+            return ens_list
+        new_dim = pd.Index(usgs_id_lst)
+        return xr.concat(ens_list, dim=new_dim)
 
     def read_constant_cols(self, usgs_id_lst=None, var_lst=None, is_return_dict=False):
         return self.camels.read_constant_cols(usgs_id_lst, var_lst, is_return_dict)

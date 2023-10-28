@@ -13,8 +13,8 @@ import io
 import xarray as xr
 import numpy as np
 import pandas as pd
-from hydrodataset.pet.pet4daymet import priestley_taylor, pm_fao56
-from hydrodataset.utils.hydro_utils import t_range_days
+from catchmentforcings.pet.pet4daymet import priestley_taylor, pm_fao56
+from catchmentforcings.utils.hydro_utils import t_range_days
 
 DEF_CRS = "epsg:4326"
 
@@ -404,24 +404,24 @@ def trans_daymet_to_camels_format(
         "vp(Pa)",
     ]
 
-    if "STAID" in gage_dict.keys():
+    if "STAID" in gage_dict:
         gage_id_key = "STAID"
-    elif "gauge_id" in gage_dict.keys():
+    elif "gauge_id" in gage_dict:
         gage_id_key = "gauge_id"
-    elif "gage_id" in gage_dict.keys():
+    elif "gage_id" in gage_dict:
         gage_id_key = "gage_id"
     else:
         raise NotImplementedError("No such gage id name")
 
-    if "HUC02" in gage_dict.keys():
+    if "HUC02" in gage_dict:
         huc02_key = "HUC02"
-    elif "huc_02" in gage_dict.keys():
+    elif "huc_02" in gage_dict:
         huc02_key = "huc_02"
     else:
         raise NotImplementedError("No such huc02 id")
 
     for f_name in os.listdir(daymet_dir):
-        if fnmatch.fnmatch(f_name, "daymet_" + region + "_mean_" + str(year) + ".csv"):
+        if fnmatch.fnmatch(f_name, f"daymet_{region}_mean_{year}.csv"):
             data_file = os.path.join(daymet_dir, f_name)
             # because this func only works for one region and one year, it means it only works for one file once
             # Hence, when we find the file and transform it, just finish
@@ -429,18 +429,19 @@ def trans_daymet_to_camels_format(
     data_temp = pd.read_csv(data_file, sep=",", dtype={name_dataset[0]: str})
     for i_basin in range(len(gage_dict[gage_id_key])):
         # name csv
+        # if type is not str, may not find the data
+        assert type(gage_dict[gage_id_key][i_basin]) == str
         basin_data = data_temp[
-            data_temp[name_dataset[0]].values.astype(int)
-            == int(gage_dict[gage_id_key][i_basin])
+            data_temp[name_dataset[0]] == gage_dict[gage_id_key][i_basin]
         ]
         if basin_data.shape[0] == 0:
-            raise ArithmeticError("chosen basins' number is zero")
+            raise ArithmeticError("Such chosen basins have no data")
         # get Year,Month,Day,Hour info
         csv_date = pd.to_datetime(basin_data[name_dataset[1]])
         # the hour is set to 12, as 12 is the average hour of a day
         year_month_day_hour = pd.DataFrame(
             [[dt.year, dt.month, dt.day, 12] for dt in csv_date],
-            columns=camels_index[0:4],
+            columns=camels_index[:4],
         )
         data_df = pd.DataFrame(basin_data.iloc[:, 2:].values, columns=camels_index[4:])
         # concat
@@ -453,27 +454,22 @@ def trans_daymet_to_camels_format(
         output_file = os.path.join(
             output_huc_dir, gage_dict[gage_id_key][i_basin] + "_lump_daymet_forcing.txt"
         )
-        print(
-            "output forcing data of", gage_dict[gage_id_key][i_basin], "year", str(year)
-        )
+        print("output forcing data of", gage_dict[gage_id_key][i_basin], "year", year)
         if os.path.isfile(output_file):
             data_old = pd.read_csv(output_file, sep=" ")
             years = np.unique(data_old[camels_index[0]].values)
             if year in years:
                 continue
-            else:
-                os.remove(output_file)
-                new_data_df = pd.concat([data_old, new_data_df]).sort_values(
-                    by=camels_index[0:3]
-                )
+            os.remove(output_file)
+            new_data_df = pd.concat([data_old, new_data_df]).sort_values(
+                by=camels_index[:3]
+            )
         new_data_df.to_csv(
             output_file, header=True, index=False, sep=" ", float_format="%.2f"
         )
 
 
-def insert_daymet_value_in_leap_year(
-    data_dir: str, t_range: list = ["1980-01-01", "2020-01-01"]
-):
+def insert_daymet_value_in_leap_year(data_dir: str, t_range: list = None):
     """
     interpolation for the 12.31 data in leap year
 
@@ -489,6 +485,8 @@ def insert_daymet_value_in_leap_year(
     None
     """
 
+    if t_range is None:
+        t_range = ["1980-01-01", "2020-01-01"]
     subdir_str = os.listdir(data_dir)
     col_lst = [
         "dayl(s)",
@@ -517,7 +515,7 @@ def insert_daymet_value_in_leap_year(
             assert all(x < y for x, y in zip(date, date[1:]))
             t_range_list = t_range_days(t_range)
             [c, ind1, ind2] = np.intersect1d(date, t_range_list, return_indices=True)
-            assert date[0] <= t_range_list[0] and date[-1] >= t_range_list[-1]
+            # assert date[0] <= t_range_list[0] and date[-1] >= t_range_list[-1]
             nt = t_range_list.size
             out = np.full([nt, 7], np.nan)
             out[ind2, :] = data_temp[col_lst].values[ind1]

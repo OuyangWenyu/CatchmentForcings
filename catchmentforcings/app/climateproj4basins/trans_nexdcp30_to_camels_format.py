@@ -17,10 +17,10 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.climateproj4basins.basin_nexdcp30_process import (
+from catchmentforcings.climateproj4basins.basin_nexdcp30_process import (
     trans_month_nex_dcp30to_camels_format,
 )
-from hydrodataset.data.data_gages import Gages
+from catchmentforcings.data.data_gages import Gages
 
 
 def main(args):

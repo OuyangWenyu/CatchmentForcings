@@ -2,7 +2,7 @@ from typing import Union
 
 import numpy as np
 import xarray as xr
-from hydrodataset.pet.meteo_utils import calc_ea
+from catchmentforcings.pet.meteo_utils import calc_ea
 
 
 def calc_rad_short(

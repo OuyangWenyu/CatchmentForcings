@@ -1,5 +1,5 @@
 import numpy as np
-from hydrodataset.utils.hydro_utils import utc_to_local
+from catchmentforcings.utils.hydro_utils import utc_to_local
 
 
 def test_always_passes():

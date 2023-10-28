@@ -7,38 +7,40 @@ import xarray as xr
 import rasterio.features as rio_features
 import pygeoutils as geoutils
 import definitions
-from hydrodataset.climateproj4basins.basin_nexdcp30_process import (
+from catchmentforcings.climateproj4basins.basin_nexdcp30_process import (
     trans_month_nex_dcp30to_camels_format,
 )
-from hydrodataset.data.data_camels import Camels
-from hydrodataset.data.data_gages import Gages
-from hydrodataset.daymet4basins.basin_daymet_process import (
+from hydrodataset.camels import Camels
+from catchmentforcings.data.data_gages import Gages
+from catchmentforcings.daymet4basins.basin_daymet_process import (
     generate_boundary_dataset,
     resample_nc,
     trans_daymet_to_camels_format,
     insert_daymet_value_in_leap_year,
 )
-from hydrodataset.ecmwf4basins.basin_era5_process import (
+from catchmentforcings.ecmwf4basins.basin_era5_process import (
     trans_era5_land_to_camels_format,
 )
-from hydrodataset.modis4basins.basin_mod16a2v105_process import (
+from catchmentforcings.modis4basins.basin_mod16a2v105_process import (
     trans_8day_modis16a2v105_to_camels_format,
 )
-from hydrodataset.modis4basins.basin_mod_ssebop_daily_eta_process import (
+from catchmentforcings.modis4basins.basin_mod_ssebop_daily_eta_process import (
     calculate_tif_data_basin_mean,
 )
-from hydrodataset.modis4basins.basin_pmlv2_process import (
+from catchmentforcings.modis4basins.basin_pmlv2_process import (
     trans_8day_pmlv2_to_camels_format,
 )
-from hydrodataset.nldas4basins.basin_nldas_process import (
+from catchmentforcings.nldas4basins.basin_nldas_process import (
     trans_daily_nldas_to_camels_format,
 )
-from hydrodataset.smap4basins.basin_smap_process import trans_nasa_usda_smap_to_camels_format
-from hydrodataset.utils.hydro_geo import (
+from catchmentforcings.smap4basins.basin_smap_process import (
+    trans_nasa_usda_smap_to_camels_format,
+)
+from catchmentforcings.utils.hydro_geo import (
     gage_intersect_time_zone,
     split_shp_to_shps_in_time_zones,
 )
-from hydrodataset.utils.hydro_utils import serialize_json, unserialize_json_ordered
+from catchmentforcings.utils.hydro_utils import serialize_json, unserialize_json_ordered
 
 
 @pytest.fixture()
@@ -57,36 +59,38 @@ def var():
 @pytest.fixture()
 def camels():
     camels_dir = os.path.join(definitions.DATASET_DIR, "camels", "camels_us")
-    if not os.path.isfile(
+    return (
+        Camels(camels_dir, False)
+        if os.path.isfile(
             os.path.join(
                 camels_dir,
-                "camels_attributes_v2.0",
-                "camels_attributes_v2.0",
-                "camels_name.txt",
+                "camels_attributes_v2.0.xlsx",
             )
-    ):
-        return Camels(camels_dir, True)
-    return Camels(camels_dir, False)
+        )
+        else Camels(camels_dir, True)
+    )
 
 
 @pytest.fixture()
 def gages():
     gages_dir = os.path.join(definitions.DATASET_DIR, "gages")
-    if not os.path.isfile(
+    return (
+        Gages(gages_dir, False)
+        if os.path.isfile(
             os.path.join(
                 gages_dir,
                 "basinchar_and_report_sept_2011",
                 "spreadsheets-in-csv-format",
                 "conterm_basinid.txt",
             )
-    ):
-        return Gages(gages_dir, True)
-    return Gages(gages_dir, False)
+        )
+        else Gages(gages_dir, True)
+    )
 
 
 def test1_trans_to_csv_load_to_gis(save_dir):
     basin_id = "01013500"
-    read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_nomask.nc")
+    read_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_nomask.nc")
     daily = xr.open_dataset(read_path)
 
     arr_lat = daily["lat"].values.flatten()
@@ -109,14 +113,14 @@ def test2_which_basin_boundary_out_of_camels(camels, save_dir):
     camels_shp_epsg4326 = camels_shp.to_crs(epsg=4326)
     geometry = camels_shp_epsg4326[
         camels_shp_epsg4326["hru_id"] == int(basin_id)
-        ].geometry.item()
+    ].geometry.item()
     gb = geometry.bounds
     gb_west = gb[0]
     gb_south = gb[1]
     gb_east = gb[2]
     gb_north = gb[3]
 
-    read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_nomask.nc")
+    read_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_nomask.nc")
     daily = xr.open_dataset(read_path)
 
     arr_lat = daily["lat"].values.flatten()
@@ -147,13 +151,13 @@ def test3_trans_to_rectangle(camels, save_dir):
     camels_shp_epsg4326 = camels_shp.to_crs(epsg=4326)
     geometry = camels_shp_epsg4326[
         camels_shp_epsg4326["hru_id"] == int(basin_id)
-        ].geometry.item()
-    save_path = os.path.join(save_dir, basin_id + "_camels.shp")
+    ].geometry.item()
+    save_path = os.path.join(save_dir, f"{basin_id}_camels.shp")
     camels_shp_epsg4326[
         camels_shp_epsg4326["hru_id"] == int(basin_id)
-        ].geometry.to_file(save_path)
+    ].geometry.to_file(save_path)
 
-    read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_from_urls.nc")
+    read_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_from_urls.nc")
     ds = xr.open_dataset(read_path)
     ds_dims = ("y", "x")
     transform, width, height = geoutils.pygeoutils._get_transform(ds, ds_dims)
@@ -169,39 +173,46 @@ def test3_trans_to_rectangle(camels, save_dir):
     x_idx_min = x_idx.min()
     x_idx_max = x_idx.max()
     _mask_bound = np.full(_mask.shape, False)
-    _mask_bound[y_idx_min: y_idx_max + 1, x_idx_min: x_idx_max + 1] = True
+    _mask_bound[y_idx_min : y_idx_max + 1, x_idx_min : x_idx_max + 1] = True
 
     coords = {ds_dims[0]: ds.coords[ds_dims[0]], ds_dims[1]: ds.coords[ds_dims[1]]}
     mask = xr.DataArray(_mask, coords, dims=ds_dims)
     mask_bound = xr.DataArray(_mask_bound, coords, dims=ds_dims)
 
-    ds_masked = ds.where(mask, drop=True)
-    ds_masked.attrs["transform"] = transform
-    ds_masked.attrs["bounds"] = _geometry.bounds
+    ds_masked = _extracted_from_test3_trans_to_rectangle_37(
+        ds, mask, transform, _geometry
+    )
+    ds_bound_masked = _extracted_from_test3_trans_to_rectangle_37(
+        ds, mask_bound, transform, _geometry
+    )
+    _extracted_from_test3_trans_to_rectangle_45(
+        ds_masked, save_dir, "geometry_load_to_qgis.csv"
+    )
+    _extracted_from_test3_trans_to_rectangle_45(
+        ds_bound_masked, save_dir, "bound_load_to_qgis.csv"
+    )
 
-    ds_bound_masked = ds.where(mask_bound, drop=True)
-    ds_bound_masked.attrs["transform"] = transform
-    ds_bound_masked.attrs["bounds"] = _geometry.bounds
 
-    arr_lat = ds_masked["lat"].values.flatten()
-    arr_lon = ds_masked["lon"].values.flatten()
-    arr_data = ds_masked["prcp"].values[0, :, :].flatten()
+# TODO Rename this here and in `test3_trans_to_rectangle`
+def _extracted_from_test3_trans_to_rectangle_37(ds, arg1, transform, _geometry):
+    result = ds.where(arg1, drop=True)
+    result.attrs["transform"] = transform
+    result.attrs["bounds"] = _geometry.bounds
+
+    return result
+
+
+# TODO Rename this here and in `test3_trans_to_rectangle`
+def _extracted_from_test3_trans_to_rectangle_45(arg0, save_dir, arg2):
+    arr_lat = arg0["lat"].values.flatten()
+    arr_lon = arg0["lon"].values.flatten()
+    arr_data = arg0["prcp"].values[0, :, :].flatten()
 
     arr_all = np.c_[arr_lat, arr_lon, arr_data]
     # remove the rows with nan value
     arr = arr_all[~np.isnan(arr_all).any(axis=1)]
     df = pd.DataFrame(data=arr, columns=["lat", "lon", "prcp"])
-    df.to_csv(os.path.join(save_dir, "geometry_load_to_qgis.csv"), index=False)
-
-    arr_bound_lat = ds_bound_masked["lat"].values.flatten()
-    arr_bound_lon = ds_bound_masked["lon"].values.flatten()
-    arr_bound_data = ds_bound_masked["prcp"].values[0, :, :].flatten()
-
-    arr_bound_all = np.c_[arr_bound_lat, arr_bound_lon, arr_bound_data]
-    # remove the rows with nan value
-    arr_bound = arr_bound_all[~np.isnan(arr_bound_all).any(axis=1)]
-    df_bound = pd.DataFrame(data=arr_bound, columns=["lat", "lon", "prcp"])
-    df_bound.to_csv(os.path.join(save_dir, "bound_load_to_qgis.csv"), index=False)
+    df.to_csv(os.path.join(save_dir, arg2), index=False)
     # after getting the csv file, please use "Layer -> Add Layer -> Add Delimited Text Layer" in QGIS to import it.
 
 
@@ -213,19 +224,19 @@ def test4_read_nc_write_boundary(camels, save_dir):
     camels_shp_epsg4326 = camels_shp.to_crs(epsg=4326)
     geometry = camels_shp_epsg4326[
         camels_shp_epsg4326["hru_id"] == int(basin_id)
-        ].geometry.item()
+    ].geometry.item()
 
-    read_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_from_urls.nc")
+    read_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_from_urls.nc")
     ds = xr.open_dataset(read_path)
     ds_masked = generate_boundary_dataset(ds, geometry)
 
-    save_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_bound.nc")
+    save_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_bound.nc")
     ds_masked.to_netcdf(save_path)
 
 
 def test_resample_nc(save_dir):
     basin_id = "01013500"
-    nc_path = os.path.join(save_dir, basin_id + "_2000_01_01-03_bound.nc")
+    nc_path = os.path.join(save_dir, f"{basin_id}_2000_01_01-03_bound.nc")
     ds = xr.open_dataset(nc_path)
     ds_high_res = resample_nc(ds, 0.5)
     ds_low_res = resample_nc(ds, 2)
@@ -243,8 +254,8 @@ def test_gee_daymet_to_camels_format(camels):
     the example data comes from the code here:
     https://code.earthengine.google.com/1ffc9a50f7749d7be2f67368f465a993
     """
-    daymet_dir = "example_data"
-    output_dir = os.path.join("test_data", "daymet")
+    daymet_dir = os.path.join(definitions.ROOT_DIR, "test", "example_data")
+    output_dir = os.path.join(definitions.ROOT_DIR, "test", "test_data", "daymet")
     gage_dict = camels.camels_sites.to_dict(orient="list")
     region = "camels"
     year = 2000
@@ -410,10 +421,35 @@ def test_tif_basin_mean(camels):
 
 
 def test_read_camels_streaflow(camels):
-    sites_id = np.array(['01594950', '02112120', '02112360', '02125000', '02342933',
-                         '02430615', '02464146', '02464360', '03049000', '03238500',
-                         '03338780', '03500240', '03592718', '04127918', '04161580',
-                         '04233000', '06154410', '06291500', '09035800', '10336740',
-                         '12010000', '12147500', '12383500', '12388400'])
-    streamflow = camels.read_target_cols(sites_id, ["2014-04-01", "2021-10-01"], ["usgsFlow"])
+    sites_id = np.array(
+        [
+            "01594950",
+            "02112120",
+            "02112360",
+            "02125000",
+            "02342933",
+            "02430615",
+            "02464146",
+            "02464360",
+            "03049000",
+            "03238500",
+            "03338780",
+            "03500240",
+            "03592718",
+            "04127918",
+            "04161580",
+            "04233000",
+            "06154410",
+            "06291500",
+            "09035800",
+            "10336740",
+            "12010000",
+            "12147500",
+            "12383500",
+            "12388400",
+        ]
+    )
+    streamflow = camels.read_target_cols(
+        sites_id, ["2014-04-01", "2021-10-01"], ["usgsFlow"]
+    )
     print(streamflow)

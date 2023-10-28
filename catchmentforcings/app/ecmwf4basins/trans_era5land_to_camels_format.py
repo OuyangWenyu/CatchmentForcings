@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-03-19 16:15:00
-LastEditTime: 2023-10-28 20:33:30
+LastEditTime: 2023-10-28 20:57:13
 LastEditors: Wenyu Ouyang
 Description: Trans ERA5-LAND data to the format of CAMELS
 FilePath: \CatchmentForcings\catchmentforcings\app\ecmwf4basins\trans_era5land_to_camels_format.py
@@ -17,6 +17,7 @@ from hydrodataset import Camels
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
+from hydrodataset.camels import Camels
 from catchmentforcings.ecmwf4basins.basin_era5_process import (
     move_camels_us_files_to_huc_dir,
     trans_era5_land_to_camels_format,
@@ -37,8 +38,12 @@ def main(args):
     assert int(args.year_range[0]) < int(args.year_range[1])
     years = list(range(int(args.year_range[0]), int(args.year_range[1])))
 
-    if time_zone == 'Asia/Hong_Kong':
-        camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_cc"), download=False, region="CC")
+    if time_zone == "Asia/Hong_Kong":
+        camels = Camels(
+            os.path.join(definitions.DATASET_DIR, "camels", "camels_cc"),
+            download=False,
+            region="CC",
+        )
     else:
         # CAMELS US
         camels = Camels(
@@ -110,7 +115,7 @@ if __name__ == "__main__":
         dest="move",
         help="Move files of CAMELS-US to huc dirs",
         default=0,
-        type=int
+        type=int,
     )
     the_args = parser.parse_args()
     if the_args.move > 0:

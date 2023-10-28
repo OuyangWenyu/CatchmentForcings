@@ -15,14 +15,14 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.data.data_camels import Camels
-from hydrodataset.modis4basins.basin_pmlv2_process import (
+from hydrodataset.camels import Camels
+from catchmentforcings.modis4basins.basin_pmlv2_process import (
     trans_8day_pmlv2_to_camels_format,
 )
-from hydrodataset.modis4basins.basin_mod16a2v105_process import (
+from catchmentforcings.modis4basins.basin_mod16a2v105_process import (
     trans_8day_modis16a2v105_to_camels_format,
 )
-from hydrodataset.modis4basins.basin_mod16a2v006_process import (
+from catchmentforcings.modis4basins.basin_mod16a2v006_process import (
     trans_8day_modis16a2v006_to_camels_format,
 )
 

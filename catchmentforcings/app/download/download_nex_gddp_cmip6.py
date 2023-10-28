@@ -14,8 +14,8 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.utils.hydro_utils import hydro_logger
-from hydrodataset.climateproj4basins.download_cmip6 import NexGddpCmip6
+from catchmentforcings.utils.hydro_utils import hydro_logger
+from catchmentforcings.climateproj4basins.download_cmip6 import NexGddpCmip6
 
 
 def main(args):

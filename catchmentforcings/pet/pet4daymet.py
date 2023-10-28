@@ -3,7 +3,7 @@ from typing import Union
 
 import numpy as np
 import xarray as xr
-from hydrodataset.pet.meteo_utils import (
+from catchmentforcings.pet.meteo_utils import (
     calc_press,
     calc_psy,
     calc_vpc,
@@ -11,7 +11,7 @@ from hydrodataset.pet.meteo_utils import (
     calc_ea,
     calc_es,
 )
-from hydrodataset.pet.rad_utils import calc_rad_short, calc_rad_long
+from catchmentforcings.pet.rad_utils import calc_rad_short, calc_rad_long
 
 
 def priestley_taylor(

@@ -190,7 +190,7 @@ class Gages(HydroDataset):
                     data_file,
                     sep=",",
                     dtype={"STAID": str},
-                    usecols=range(0, 4),
+                    usecols=range(4),
                     encoding="unicode_escape",
                 )
             else:
@@ -459,51 +459,18 @@ class Gages(HydroDataset):
         ).iloc[1:, :]
         # change the original column names
         columns_names = df_flow.columns.tolist()
-        columns_flow = []
-        columns_flow_cd = []
-        for column_name in columns_names:
-            # 00060 means "discharge"，00003 represents "mean value"
-            # one special case： 126801       00060     00003     Discharge, cubic feet per second (Mean) and
-            # 126805       00060     00003     Discharge, cubic feet per second (Mean), PUBLISHED
-            # Both are mean values, here I will choose the column with more records
-            if "_00060_00003" in column_name and "_00060_00003_cd" not in column_name:
-                columns_flow.append(column_name)
-        for column_name in columns_names:
-            if "_00060_00003_cd" in column_name:
-                columns_flow_cd.append(column_name)
-
+        columns_flow = [
+            column_name
+            for column_name in columns_names
+            if "_00060_00003" in column_name and "_00060_00003_cd" not in column_name
+        ]
+        columns_flow_cd = [
+            column_name
+            for column_name in columns_names
+            if "_00060_00003_cd" in column_name
+        ]
         if len(columns_flow) > 1:
-            print("there are some columns for flow, choose one\n")
-            df_date_temp = df_flow["datetime"]
-            date_temp = pd.to_datetime(df_date_temp).values.astype("datetime64[D]")
-            c_temp, ind1_temp, ind2_temp = np.intersect1d(
-                date_temp, t_lst, return_indices=True
-            )
-            num_nan_lst = []
-            for i in range(len(columns_flow)):
-                out_temp = np.full([len(t_lst)], np.nan)
-
-                df_flow.loc[df_flow[columns_flow[i]] == "Ice", columns_flow[i]] = np.nan
-                df_flow.loc[df_flow[columns_flow[i]] == "Ssn", columns_flow[i]] = np.nan
-                df_flow.loc[df_flow[columns_flow[i]] == "Tst", columns_flow[i]] = np.nan
-                df_flow.loc[df_flow[columns_flow[i]] == "Eqp", columns_flow[i]] = np.nan
-                df_flow.loc[df_flow[columns_flow[i]] == "Rat", columns_flow[i]] = np.nan
-                df_flow.loc[df_flow[columns_flow[i]] == "Dis", columns_flow[i]] = np.nan
-                df_flow.loc[df_flow[columns_flow[i]] == "Bkw", columns_flow[i]] = np.nan
-                df_flow.loc[df_flow[columns_flow[i]] == "***", columns_flow[i]] = np.nan
-                df_flow.loc[df_flow[columns_flow[i]] == "Mnt", columns_flow[i]] = np.nan
-                df_flow.loc[df_flow[columns_flow[i]] == "ZFL", columns_flow[i]] = np.nan
-
-                df_flow_temp = df_flow[columns_flow[i]].copy()
-                out_temp[ind2_temp] = df_flow_temp[ind1_temp]
-                num_nan = np.isnan(out_temp).sum()
-                num_nan_lst.append(num_nan)
-            num_nan_np = np.array(num_nan_lst)
-            index_flow_num = np.argmin(num_nan_np)
-            df_flow.rename(columns={columns_flow[index_flow_num]: "flow"}, inplace=True)
-            df_flow.rename(
-                columns={columns_flow_cd[index_flow_num]: "mode"}, inplace=True
-            )
+            self._format_flow_data(df_flow, t_lst, columns_flow, columns_flow_cd)
         else:
             for column_name in columns_names:
                 if (
@@ -520,23 +487,13 @@ class Gages(HydroDataset):
         columns = ["agency_cd", "site_no", "datetime", "flow", "mode"]
         if df_flow.empty:
             df_flow = pd.DataFrame(columns=columns)
-        if not ("flow" in df_flow.columns.intersection(columns)):
+        if "flow" not in df_flow.columns.intersection(columns):
             data_temp = df_flow.loc[:, df_flow.columns.intersection(columns)]
             # add nan column to data_temp
             data_temp = pd.concat([data_temp, pd.DataFrame(columns=["flow", "mode"])])
         else:
             data_temp = df_flow.loc[:, columns]
-        # fix flow which is not numeric data
-        data_temp.loc[data_temp["flow"] == "Ice", "flow"] = np.nan
-        data_temp.loc[data_temp["flow"] == "Ssn", "flow"] = np.nan
-        data_temp.loc[data_temp["flow"] == "Tst", "flow"] = np.nan
-        data_temp.loc[data_temp["flow"] == "Eqp", "flow"] = np.nan
-        data_temp.loc[data_temp["flow"] == "Rat", "flow"] = np.nan
-        data_temp.loc[data_temp["flow"] == "Dis", "flow"] = np.nan
-        data_temp.loc[data_temp["flow"] == "Bkw", "flow"] = np.nan
-        data_temp.loc[data_temp["flow"] == "***", "flow"] = np.nan
-        data_temp.loc[data_temp["flow"] == "Mnt", "flow"] = np.nan
-        data_temp.loc[data_temp["flow"] == "ZFL", "flow"] = np.nan
+        self._check_flow_data(data_temp, "flow")
         # set negative value -- nan
         obs = data_temp["flow"].astype("float").values
         obs[obs < 0] = np.nan
@@ -549,6 +506,39 @@ class Gages(HydroDataset):
         c, ind1, ind2 = np.intersect1d(date, t_lst, return_indices=True)
         out[ind2] = obs[ind1]
         return out
+
+    def _format_flow_data(self, df_flow, t_lst, columns_flow, columns_flow_cd):
+        print("there are some columns for flow, choose one\n")
+        df_date_temp = df_flow["datetime"]
+        date_temp = pd.to_datetime(df_date_temp).values.astype("datetime64[D]")
+        c_temp, ind1_temp, ind2_temp = np.intersect1d(
+            date_temp, t_lst, return_indices=True
+        )
+        num_nan_lst = []
+        for item in columns_flow:
+            out_temp = np.full([len(t_lst)], np.nan)
+
+            self._check_flow_data(df_flow, item)
+            df_flow_temp = df_flow[item].copy()
+            out_temp[ind2_temp] = df_flow_temp[ind1_temp]
+            num_nan = np.isnan(out_temp).sum()
+            num_nan_lst.append(num_nan)
+        num_nan_np = np.array(num_nan_lst)
+        index_flow_num = np.argmin(num_nan_np)
+        df_flow.rename(columns={columns_flow[index_flow_num]: "flow"}, inplace=True)
+        df_flow.rename(columns={columns_flow_cd[index_flow_num]: "mode"}, inplace=True)
+
+    def _check_flow_data(self, arg0, arg1):
+        arg0.loc[arg0[arg1] == "Ice", arg1] = np.nan
+        arg0.loc[arg0[arg1] == "Ssn", arg1] = np.nan
+        arg0.loc[arg0[arg1] == "Tst", arg1] = np.nan
+        arg0.loc[arg0[arg1] == "Eqp", arg1] = np.nan
+        arg0.loc[arg0[arg1] == "Rat", arg1] = np.nan
+        arg0.loc[arg0[arg1] == "Dis", arg1] = np.nan
+        arg0.loc[arg0[arg1] == "Bkw", arg1] = np.nan
+        arg0.loc[arg0[arg1] == "***", arg1] = np.nan
+        arg0.loc[arg0[arg1] == "Mnt", arg1] = np.nan
+        arg0.loc[arg0[arg1] == "ZFL", arg1] = np.nan
 
     def read_object_ids(self, object_params=None) -> np.array:
         return self.gages_sites["STAID"]
@@ -599,7 +589,7 @@ class Gages(HydroDataset):
         gage_id_file = self.data_source_description["GAGES_GAUGE_FILE"]
         data_all = pd.read_csv(gage_id_file, sep=",", dtype={0: str})
         gage_fld_lst = data_all.columns.values
-        out = dict()
+        out = {}
         df_id_region = data_all.iloc[:, 0].values
         assert all(x < y for x, y in zip(df_id_region, df_id_region[1:]))
         for s in gage_fld_lst:
@@ -640,7 +630,7 @@ def prepare_usgs_data(
             dir_list = os.listdir(dir_gage_flow)
         dir_huc_02 = os.path.join(dir_gage_flow, str(huc_02))
         file_list = os.listdir(dir_huc_02)
-        file_usgs_id = str(usgs_id_lst[ind]) + ".txt"
+        file_usgs_id = f"{str(usgs_id_lst[ind])}.txt"
         if file_usgs_id not in file_list:
             # download data and save as txt file
             start_time_str = datetime.strptime(t_download_range[0], "%Y-%m-%d")
@@ -658,7 +648,7 @@ def prepare_usgs_data(
             )
 
             # save in its HUC02 dir
-            temp_file = os.path.join(dir_huc_02, str(usgs_id_lst[ind]) + ".txt")
+            temp_file = os.path.join(dir_huc_02, f"{str(usgs_id_lst[ind])}.txt")
             hydro_file.download_small_file(url, temp_file)
             print("successfully download " + temp_file + " streamflow data！")
 
@@ -676,8 +666,7 @@ def get_dor_values(gages: Gages, usgs_id) -> np.array:
     data_attr = gages.read_constant_cols(usgs_id, attr_lst)
     run_avg = data_attr[:, 0] * (10 ** (-3)) * (10**6)  # m^3 per year
     nor_storage = data_attr[:, 1] * 1000  # m^3
-    dors = nor_storage / run_avg
-    return dors
+    return nor_storage / run_avg
 
 
 def get_diversion(gages: Gages, usgs_id) -> np.array:
@@ -744,17 +733,17 @@ def read_usgs_daily_flow(
     year_month_day = pd.DataFrame(
         [[dt.year, dt.month, dt.day] for dt in dates], columns=camels_format_index[1:4]
     )
-    if "STAID" in gage_dict.keys():
+    if "STAID" in gage_dict:
         gage_id_key = "STAID"
-    elif "gauge_id" in gage_dict.keys():
+    elif "gauge_id" in gage_dict:
         gage_id_key = "gauge_id"
-    elif "gage_id" in gage_dict.keys():
+    elif "gage_id" in gage_dict:
         gage_id_key = "gage_id"
     else:
         raise NotImplementedError("No such gage id name")
-    if "HUC02" in gage_dict.keys():
+    if "HUC02" in gage_dict:
         huc02_key = "HUC02"
-    elif "huc_02" in gage_dict.keys():
+    elif "huc_02" in gage_dict:
         huc02_key = "huc_02"
     else:
         raise NotImplementedError("No such huc02 id")
@@ -768,7 +757,7 @@ def read_usgs_daily_flow(
             qobs_i = qobs["USGS-" + site_id]
             df_flow = pd.DataFrame(qobs_i.values, columns=camels_format_index[4:5])
         df_id = pd.DataFrame(
-            np.full(qobs.shape[0], site_id), columns=camels_format_index[0:1]
+            np.full(qobs.shape[0], site_id), columns=camels_format_index[:1]
         )
         new_data_df = pd.concat([df_id, year_month_day, df_flow], axis=1)
         # output the result
@@ -811,7 +800,7 @@ def make_usgs_data(
     print("Request finished")
     response_data = process_response_text(site_number + ".txt")
     create_csv(response_data[0], response_data[1], site_number)
-    return pd.read_csv(site_number + "_flow_data.csv")
+    return pd.read_csv(f"{site_number}_flow_data.csv")
 
 
 def process_response_text(file_name: str) -> Tuple[str, Dict]:
@@ -831,9 +820,8 @@ def process_response_text(file_name: str) -> Tuple[str, Dict]:
                     extractive_params[
                         the_split_line[0] + "_" + the_split_line[1]
                     ] = df_label(the_split_line[2])
-            if len(the_split_line) > 2:
-                if the_split_line[0] == "TS":
-                    params = True
+            if len(the_split_line) > 2 and the_split_line[0] == "TS":
+                params = True
             i += 1
         with open(file_name.split(".")[0] + "data.tsv", "w") as t:
             t.write("".join(lines[i:]))
@@ -866,11 +854,11 @@ def create_csv(file_path: str, params_names: dict, site_number: str):
     df = pd.read_csv(file_path, sep="\t")
     for key, value in params_names.items():
         df[value] = df[key]
-    df.to_csv(site_number + "_flow_data.csv")
+    df.to_csv(f"{site_number}_flow_data.csv")
 
 
 def get_timezone_map():
-    timezone_map = {
+    return {
         "EST": "America/New_York",
         "EDT": "America/New_York",
         "CST": "America/Chicago",
@@ -880,7 +868,6 @@ def get_timezone_map():
         "PST": "America/Los_Angeles",
         "PDT": "America/Los_Angeles",
     }
-    return timezone_map
 
 
 def process_intermediate_csv(df: pd.DataFrame) -> Union[pd.DataFrame, int, int, int]:

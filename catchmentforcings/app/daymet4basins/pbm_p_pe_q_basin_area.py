@@ -18,8 +18,8 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.utils.hydro_utils import hydro_logger, t_range_days
-from hydrodataset.data.data_daymet4camels import Daymet4Camels
+from catchmentforcings.utils.hydro_utils import hydro_logger, t_range_days
+from catchmentforcings.data.data_daymet4camels import Daymet4Camels
 
 
 def main(args):

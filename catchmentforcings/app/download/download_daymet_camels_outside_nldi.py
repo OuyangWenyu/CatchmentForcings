@@ -16,11 +16,11 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.data.data_camels import Camels
-from hydrodataset.daymet4basins.basin_daymet_process import (
+from hydrodataset.camels import Camels
+from catchmentforcings.daymet4basins.basin_daymet_process import (
     download_daymet_by_geom_bound,
 )
-from hydrodataset.utils.hydro_utils import (
+from catchmentforcings.utils.hydro_utils import (
     unserialize_geopandas,
     hydro_logger,
     serialize_json,
