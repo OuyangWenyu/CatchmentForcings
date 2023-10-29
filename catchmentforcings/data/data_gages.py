@@ -2,10 +2,8 @@ import collections
 import os
 import numpy as np
 import pandas as pd
-import requests
 from datetime import datetime, timedelta
-from typing import Tuple, Dict, Union
-import pytz
+from typing import Dict, Union
 from pandas.core.dtypes.common import is_string_dtype, is_numeric_dtype
 
 from hydrodataset import HydroDataset
@@ -159,12 +157,12 @@ class Gages(HydroDataset):
             all attr data for gages_ids
         """
         dir_gage_attr = self.data_source_description["GAGES_ATTR_DIR"]
-        f_dict = dict()  # factorize dict
+        f_dict = {}  # factorize dict
         # each key-value pair for atts in a file (list）
-        var_dict = dict()
+        var_dict = {}
         # all attrs
-        var_lst = list()
-        out_lst = list()
+        var_lst = []
+        out_lst = []
         # read all attrs
         var_des = pd.read_csv(
             os.path.join(dir_gage_attr, "variable_descriptions.txt"), sep=","
@@ -197,7 +195,7 @@ class Gages(HydroDataset):
                 data_temp = pd.read_csv(data_file, sep=",", dtype={"STAID": str})
             if key == "flowrec":
                 # remove final column which is nan
-                data_temp = data_temp.iloc[:, range(0, data_temp.shape[1] - 1)]
+                data_temp = data_temp.iloc[:, range(data_temp.shape[1] - 1)]
             # all attrs in files
             var_lst_temp = list(data_temp.columns[1:])
             var_dict[key] = var_lst_temp
@@ -350,7 +348,7 @@ class Gages(HydroDataset):
         # original daymet file not for leap year, there is no data in 12.31 in leap year,
         # so files which have been interpolated for nan value have name "_leap"
         data_file = os.path.join(
-            data_folder, huc, "%s_lump_%s_forcing_leap.txt" % (usgs_id, forcing_type)
+            data_folder, huc, f"{usgs_id}_lump_{forcing_type}_forcing_leap.txt"
         )
         print("reading", forcing_type, "forcing data ", usgs_id)
         data_temp = pd.read_csv(data_file, sep=r"\s+", header=None, skiprows=1)
@@ -689,204 +687,3 @@ def get_diversion(gages: Gages, usgs_id) -> np.array:
         for i in range(len(usgs_id))
     ]
     return np.array(diversions)
-
-
-def read_usgs_daily_flow(
-    usgs_site_ids: list,
-    date_tuple: tuple,
-    gage_dict: dict,
-    save_dir: str,
-    unit: str = "cfs",
-) -> pd.DataFrame:
-    """
-    Read USGS flow data by HyRivers' pygeohydro tool.
-    The tool's tutorial: https://github.com/cheginit/HyRiver-examples/blob/main/notebooks/nwis.ipynb
-
-    Parameters
-    ----------
-    usgs_site_ids
-        ids of USGS sites
-    date_tuple
-        start and end date
-    gage_dict
-        a dict containing gage's ids and the correspond HUC02 ids
-    save_dir
-        where we save streamflow data in files like CAMELS
-    unit
-        unit of streamflow, cms or cfs
-
-    Returns
-    -------
-    pd.DataFrame
-        streamflow data -- index is date; column is gage id
-    """
-    from pygeohydro import NWIS
-
-    nwis = NWIS()
-    qobs = nwis.get_streamflow(usgs_site_ids, date_tuple, mmd=False)
-    # the unit of qobs is cms, but unit in CAMELS and GAGES-II is cfs, so here we transform it
-    # use round(2) because in both CAMELS and GAGES-II, data with cfs only have two float digits
-    if unit == "cfs":
-        qobs = (qobs * 35.314666212661).round(2)
-    dates = qobs.index
-    camels_format_index = ["GAGE_ID", "Year", "Mnth", "Day", "streamflow(" + unit + ")"]
-    year_month_day = pd.DataFrame(
-        [[dt.year, dt.month, dt.day] for dt in dates], columns=camels_format_index[1:4]
-    )
-    if "STAID" in gage_dict:
-        gage_id_key = "STAID"
-    elif "gauge_id" in gage_dict:
-        gage_id_key = "gauge_id"
-    elif "gage_id" in gage_dict:
-        gage_id_key = "gage_id"
-    else:
-        raise NotImplementedError("No such gage id name")
-    if "HUC02" in gage_dict:
-        huc02_key = "HUC02"
-    elif "huc_02" in gage_dict:
-        huc02_key = "huc_02"
-    else:
-        raise NotImplementedError("No such huc02 id")
-    read_sites = [col[5:] for col in qobs.columns.values]
-    for site_id in usgs_site_ids:
-        if site_id not in read_sites:
-            df_flow = pd.DataFrame(
-                np.full(qobs.shape[0], np.nan), columns=camels_format_index[4:5]
-            )
-        else:
-            qobs_i = qobs["USGS-" + site_id]
-            df_flow = pd.DataFrame(qobs_i.values, columns=camels_format_index[4:5])
-        df_id = pd.DataFrame(
-            np.full(qobs.shape[0], site_id), columns=camels_format_index[:1]
-        )
-        new_data_df = pd.concat([df_id, year_month_day, df_flow], axis=1)
-        # output the result
-        i_basin = gage_dict[gage_id_key].values.tolist().index(site_id)
-        huc_id = gage_dict[huc02_key][i_basin]
-        output_huc_dir = os.path.join(save_dir, huc_id)
-        if not os.path.isdir(output_huc_dir):
-            os.makedirs(output_huc_dir)
-        output_file = os.path.join(output_huc_dir, site_id + "_streamflow_qc.txt")
-        if os.path.isfile(output_file):
-            os.remove(output_file)
-        new_data_df.to_csv(
-            output_file, header=True, index=False, sep=",", float_format="%.2f"
-        )
-    return qobs
-
-
-# TODO: the following functions are not tested now. They may be useful when handling with hourly data
-def make_usgs_data(
-    start_date: datetime, end_date: datetime, site_number: str
-) -> pd.DataFrame:
-    """This method could also be used to download usgs streamflow data"""
-    base_url = (
-        "https://nwis.waterdata.usgs.gov/usa/nwis/uv/?cb_00060=on&cb_00065&format=rdb&"
-    )
-    full_url = (
-        base_url
-        + "site_no="
-        + site_number
-        + "&period=&begin_date="
-        + start_date.strftime("%Y-%m-%d")
-        + "&end_date="
-        + end_date.strftime("%Y-%m-%d")
-    )
-    print("Getting request from USGS")
-    print(full_url)
-    r = requests.get(full_url)
-    with open(site_number + ".txt", "w") as f:
-        f.write(r.text)
-    print("Request finished")
-    response_data = process_response_text(site_number + ".txt")
-    create_csv(response_data[0], response_data[1], site_number)
-    return pd.read_csv(f"{site_number}_flow_data.csv")
-
-
-def process_response_text(file_name: str) -> Tuple[str, Dict]:
-    extractive_params = {}
-    with open(file_name, "r") as f:
-        lines = f.readlines()
-        i = 0
-        params = False
-        while "#" in lines[i]:
-            # TODO figure out getting height and discharge code efficently
-            the_split_line = lines[i].split()[1:]
-            if params:
-                print(the_split_line)
-                if len(the_split_line) < 2:
-                    params = False
-                else:
-                    extractive_params[
-                        the_split_line[0] + "_" + the_split_line[1]
-                    ] = df_label(the_split_line[2])
-            if len(the_split_line) > 2 and the_split_line[0] == "TS":
-                params = True
-            i += 1
-        with open(file_name.split(".")[0] + "data.tsv", "w") as t:
-            t.write("".join(lines[i:]))
-        return file_name.split(".")[0] + "data.tsv", extractive_params
-
-
-def df_label(usgs_text: str) -> str:
-    usgs_text = usgs_text.replace(",", "")
-    if usgs_text == "Discharge":
-        return "cfs"
-    elif usgs_text == "Gage":
-        return "height"
-    else:
-        return usgs_text
-
-
-def create_csv(file_path: str, params_names: dict, site_number: str):
-    """
-    Function that creates the final version of the CSV files
-
-    Parameters
-    ----------
-    file_path : str
-        [description]
-    params_names : dict
-        [description]
-    site_number : str
-        [description]
-    """
-    df = pd.read_csv(file_path, sep="\t")
-    for key, value in params_names.items():
-        df[value] = df[key]
-    df.to_csv(f"{site_number}_flow_data.csv")
-
-
-def get_timezone_map():
-    return {
-        "EST": "America/New_York",
-        "EDT": "America/New_York",
-        "CST": "America/Chicago",
-        "CDT": "America/Chicago",
-        "MDT": "America/Denver",
-        "MST": "America/Denver",
-        "PST": "America/Los_Angeles",
-        "PDT": "America/Los_Angeles",
-    }
-
-
-def process_intermediate_csv(df: pd.DataFrame) -> Union[pd.DataFrame, int, int, int]:
-    # Remove garbage first row
-    # TODO check if more rows are garbage
-    df = df.iloc[1:]
-    time_zone = df["tz_cd"].iloc[0]
-    time_zone = get_timezone_map()[time_zone]
-    old_timezone = pytz.timezone(time_zone)
-    new_timezone = pytz.timezone("UTC")
-    # This assumes timezones are consistent throughout the USGS stream (this should be true)
-    df["datetime"] = df["datetime"].map(
-        lambda x: old_timezone.localize(
-            datetime.strptime(x, "%Y-%m-%d %H:%M")
-        ).astimezone(new_timezone)
-    )
-    df["cfs"] = pd.to_numeric(df["cfs"], errors="coerce")
-    max_flow = df["cfs"].max()
-    min_flow = df["cfs"].min()
-    count_nan = len(df["cfs"]) - df["cfs"].count()
-    print(f"there are {count_nan} nan values")
-    return df[df.datetime.dt.minute == 0], max_flow, min_flow
