@@ -70,6 +70,8 @@ Although we provide tools to use cds toolbox from ECMWF to retrieve ERA5-land da
 when data is MB level). Hence, we recommend a manual way to download the ERA5-land data archive
 from https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land?tab=form
 
+If we directly compile forcing data in GEE, we can directly run notebook in catchmentforcings\ecmwf4basins\download_era5land4basins_gee.ipynb
+
 #### Process the downloaded ERA5-Land data
 
 TODO: Regrid the raw data to the required resolutions (src/regrid.py from https://github.com/pangeo-data/WeatherBench)
