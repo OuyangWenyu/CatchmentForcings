@@ -1,12 +1,13 @@
 """
 Author: Wenyu Ouyang
 Date: 2022-01-25 16:49:00
-LastEditTime: 2022-01-27 09:40:16
+LastEditTime: 2024-04-27 19:25:46
 LastEditors: Wenyu Ouyang
 Description: Transform the data format of PMLV2, MOD16A2_105, and MOD16A2_006 to the camels'
-FilePath: /HydroBench/hydrodataset/app/modis4basins/trans_modis_et_to_camels_format.py
+FilePath: \CatchmentForcings\catchmentforcings\app\modis4basins\trans_modis_et_to_camels_format.py
 Copyright (c) 2021-2022 Wenyu Ouyang. All rights reserved.
 """
+
 import argparse
 import os
 import sys
@@ -23,7 +24,7 @@ from catchmentforcings.modis4basins.basin_mod16a2v105_process import (
     trans_8day_modis16a2v105_to_camels_format,
 )
 from catchmentforcings.modis4basins.basin_mod16a2v006_process import (
-    trans_8day_modis16a2v006_to_camels_format,
+    trans_8day_modis16a2_to_camels_format,
 )
 
 
@@ -42,21 +43,31 @@ def main(args):
     assert int(args.year_range[0]) < int(args.year_range[1])
     years = list(range(int(args.year_range[0]), int(args.year_range[1])))
 
-    camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", camels_region), region=camels_name)
-    gage_dict = camels.camels_sites.to_dict(orient="list")
+    camels = Camels(
+        os.path.join(definitions.DATASET_DIR, "camels", camels_name),
+        region=camels_region,
+    )
+    gage_dict = camels.sites.to_dict(orient="list")
 
     for i in tqdm(range(len(years)), leave=False):
+        region_param = "camels" if camels_region == "US" else camels_name
         if dataset_name == "PML_V2":
             trans_8day_pmlv2_to_camels_format(
-                modis_et_dir, output_dir, gage_dict, camels_region, years[i]
+                modis_et_dir, output_dir, gage_dict, region_param, years[i]
             )
         elif dataset_name == "MOD16A2_105":
             trans_8day_modis16a2v105_to_camels_format(
-                modis_et_dir, output_dir, gage_dict, camels_region, years[i]
+                modis_et_dir, output_dir, gage_dict, region_param, years[i]
             )
-        elif dataset_name == "MOD16A2_006":
-            trans_8day_modis16a2v006_to_camels_format(
-                modis_et_dir, output_dir, gage_dict, camels_region, years[i]
+        elif dataset_name in ["MOD16A2_006", "MOD16A2GF_061"]:
+            version = "006" if dataset_name == "MOD16A2_006" else "gf061"
+            trans_8day_modis16a2_to_camels_format(
+                modis_et_dir,
+                output_dir,
+                gage_dict,
+                region_param,
+                years[i],
+                version=version,
             )
         else:
             raise FileNotFoundError(
@@ -78,42 +89,42 @@ if __name__ == "__main__":
         "--dataset_name",
         dest="dataset_name",
         help="The downloaded ET data",
-        default="MOD16A2_006",
+        default="MOD16A2GF_061",
         type=str,
     )
     parser.add_argument(
         "--camels_name",
         dest="camels_name",
-        help="name of the region: US/CC/AUS/...",
-        default="CC",
+        help="name of the CAMELS directory",
+        default="camels_us",
         type=str,
     )
     parser.add_argument(
         "--camels_region",
         dest="camels_region",
-        help="the region",
-        default="camels_cc",
+        help="name of the region: US/CC/AUS/...",
+        default="US",
         type=str,
     )
     parser.add_argument(
         "--input_dir",
         dest="input_dir",
         help="The directory of downloaded ET data",
-        default="D:/data/MOD16A2_006_CC",
+        default="C:\\Users\\wenyu\\Downloads\\drive-download-20240427T091516Z-001",
         type=str,
     )
     parser.add_argument(
         "--output_dir",
         dest="output_dir",
         help="The directory of transformed data",
-        default="D:/data/modiset4camels/basin_mean_forcing/MOD16A2_006_CAMELS_CC",
+        default="C:\\Users\\wenyu\\source\\data\\modiset4camels\\basin_mean_forcing\\MOD16A2GF_061_CAMELS",
         type=str,
     )
     parser.add_argument(
         "--year_range",
         dest="year_range",
         help="The start and end years (right open interval)",
-        default=[2001, 2022],
+        default=[2001, 2024],
         nargs="+",
     )
     the_args = parser.parse_args()
