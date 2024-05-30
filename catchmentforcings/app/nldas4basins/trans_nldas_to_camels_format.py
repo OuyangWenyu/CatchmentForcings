@@ -1,6 +1,7 @@
 """
 Transform the data format of NLDAS to the camels'
 """
+
 import argparse
 import os
 import sys
@@ -9,10 +10,11 @@ import pandas as pd
 from tqdm import tqdm
 
 from pathlib import Path
+from hydrodataset.camels import Camels
 
 sys.path.append(os.path.dirname(Path(os.path.abspath(__file__)).parent.parent.parent))
 import definitions
-from hydrodataset.camels import Camels
+from catchmentforcings.app.app_utils import _2ndprocess
 from catchmentforcings.nldas4basins.basin_nldas_process import (
     trans_daily_nldas_to_camels_format,
 )
@@ -35,17 +37,35 @@ def main(args):
     years = list(range(int(args.year_range[0]), int(args.year_range[1])))
 
     if region == "camels":
-        camels = Camels(os.path.join(definitions.DATASET_DIR, "camels"), download=True)
-        gage_dict = camels.camels_sites.to_dict(orient="list")
+        camels = Camels(os.path.join(definitions.DATASET_DIR, "camels", "camels_us"))
+        gage_dict = camels.read_site_info()
+    elif os.path.isfile(gage_file):
+        gage_dict = pd.read_csv(gage_file, dtype={sta_id_str: str, huc_str: str})
     else:
-        if not os.path.isfile(gage_file):
-            raise FileNotFoundError("Please give it a gage_dict file")
-        else:
-            gage_dict = pd.read_csv(gage_file, dtype={sta_id_str: str, huc_str: str})
+        raise FileNotFoundError("Please give it a gage_dict file")
     for i in tqdm(range(len(years)), leave=False):
         trans_daily_nldas_to_camels_format(
             nldas_dir, output_dir, gage_dict, region, years[i]
         )
+    _2ndprocess(
+        camels,
+        gage_dict["gauge_id"].values,
+        gage_dict,
+        output_dir,
+        one_grid_area=13.915**2,
+        grids_num_file=os.path.join(
+            definitions.ROOT_DIR,
+            "catchmentforcings",
+            "app",
+            "nldas4basins",
+            "NLDAS_camels_mean_basinlist.csv",
+        ),
+        var_lst=[
+            "convective_fraction(-)",
+        ],
+        file_name="nldas_forcing_leap",
+        table_sep=" ",
+    )
     print("Trans finished")
 
 
@@ -57,14 +77,14 @@ if __name__ == "__main__":
         "--input_dir",
         dest="input_dir",
         help="The directory of downloaded NLDAS data",
-        default="/mnt/sdc/owen/datasets/NLDAS",
+        default="C:\\Users\\wenyu\\Downloads\\drive-download-20240530T055402Z-001",
         type=str,
     )
     parser.add_argument(
         "--output_dir",
         dest="output_dir",
         help="The directory of transformed data",
-        default="/mnt/sdc/owen/datasets/NLDAS_CAMELS",
+        default="C:\\Users\\wenyu\\Downloads\\nldas4camels\\basin_mean_forcing",
         type=str,
     )
     parser.add_argument(
